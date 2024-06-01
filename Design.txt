@@ -1,0 +1,76 @@
+TO DO
+	Tracing bullet
+	Drag and drop / Move
+
+Enum Color
+
+Piece
+	Pos
+	const DELTA_POS
+	Color
+	HasMoved
+	
+	Pawn
+	Rook
+	Knight
+	Bishop
+	Queen
+	King
+
+Board
+	List Piece
+
+Move
+	PieceType
+	PosStart
+	PosEnd
+	PieceCaptured
+	Board
+	
+Controller
+	ShowPossibleMoves(Piece)
+		FillCurrentPossibleMove
+		Checked
+		Double Checked
+			Tree ways to get out
+				move out
+				block
+				take the piece
+		Pinned
+		Castle (if not checked)
+		En passant (last next turn only)
+	Move(Piece, Pos)
+	EvaluateGameState()
+	
+	MoveCount
+	CurrentPossibleMove
+
+
+	List Move
+	ViewMoveIdx
+	HashMoves
+
+Evaluator
+	isCheck(board, color)
+	isCheckMate(board, color)
+	isDraw(board, color)
+	isStalemate(board)
+	IsPromotion(board, color)
+	IsInsuffecientMat(board)
+	isFiftyMoves(Record)
+	isRepetition()
+		Check if Hash 3 times
+		Clear if piece captured
+	MoveFiftyCount
+	RepetionMoves
+		
+enum State
+	Check
+	CheckMate
+	Draw
+	Stalemaate
+	Promotion
+	InsuffecientMat
+	FiftyMoves
+	Repetition
+	GameOn
