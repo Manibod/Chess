@@ -7,7 +7,9 @@ TILE_SIZE = 98
 WINDOW_WIDTH  = TILES_NB * TILE_SIZE
 WINDOW_HEIGHT = TILES_NB * TILE_SIZE
 TILE_WHITE_COLOR   = (235, 236, 208)
-TILE_GREEN_COLOR   = (115, 149, 82)
+TILE_BLACK_COLOR   = (115, 149, 82)
+TILE_SELECTED_WHITE_COLOR = (245, 246, 130)
+TILE_SELECTED_BLACK_COLOR = (185, 202, 67)
 WHITE_PIECE_COLOR  = (249,249,249)
 BLACK_PIECE_COLOR  = (92,89,87)
 PIECE_BORDER_COLOR = (62,60,59)
@@ -77,8 +79,12 @@ class King(Piece):
 class Game:
     def __init__(self):
         self.displayer = Displayer()
-        self.init_boards()
         self.run = True
+        self.board_2D = None
+        self.board_dict = None
+        self.turn = WHITE
+
+        self.init_boards()
 
     def init_boards(self):
         self.board_2D = [
@@ -114,9 +120,14 @@ class Game:
             elif event.type == pg.KEYDOWN:
                 if event.key == pg.K_ESCAPE:
                     self.run = False
-            # elif event.type == pg.MOUSEBUTTONUP:
-            #     pos = pg.mouse.get_pos()
-            #     self.player.move(pos)
+            elif event.type == pg.MOUSEBUTTONUP:
+                mouse_pos = pg.mouse.get_pos()
+                screen_pos_x = mouse_pos[0] // TILE_SIZE
+                screen_pos_y = mouse_pos[1] // TILE_SIZE
+                pos = (screen_pos_x, TILES_NB - 1 - screen_pos_y)
+                if pos not in self.board_dict or self.board_dict[pos] == None:
+                    pos = None
+                self.displayer.set_selected_tile_pos(pos)
 
 
 
@@ -126,16 +137,27 @@ class Displayer:
         pg.init()
         pg.display.set_caption(TITLE)
         self.screen = pg.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
-        
+        self.selected_tile_pos = None
+
     def grid_display(self):
-        self.screen.fill(TILE_WHITE_COLOR)
+        self.screen.fill(TILE_BLACK_COLOR)
         for row in range(TILES_NB):
             for col in range(row % 2, TILES_NB, 2):
                 pg.draw.rect(
                     self.screen,
-                    TILE_GREEN_COLOR,
-                    (row * TILE_SIZE, col * TILE_SIZE, TILE_SIZE, TILE_SIZE),
+                    TILE_WHITE_COLOR,
+                    (row * TILE_SIZE, col * TILE_SIZE, TILE_SIZE, TILE_SIZE)
                 )
+
+        if self.selected_tile_pos:
+            color = TILE_SELECTED_WHITE_COLOR if (self.selected_tile_pos[0] % 2 + self.selected_tile_pos[1] % 2) % 2 else TILE_SELECTED_BLACK_COLOR
+            x = self.selected_tile_pos[0]
+            y = TILES_NB - 1 - self.selected_tile_pos[1]
+            pg.draw.rect(
+                self.screen,
+                color,
+                (x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE)
+            )
 
     def board_display(self, board_dict):
         for pos, piece in board_dict.items():
@@ -145,6 +167,9 @@ class Displayer:
             screen_pos = (x, y)
             pg.draw.circle(self.screen, color, screen_pos, TILE_SIZE / 2)
             pg.draw.circle(self.screen, PIECE_BORDER_COLOR, screen_pos, TILE_SIZE / 2, 2)
+    
+    def set_selected_tile_pos(self, pos):
+        self.selected_tile_pos = pos
 
     def update(self):
         pg.display.update()
