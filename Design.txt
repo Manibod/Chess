@@ -32,7 +32,7 @@ Move
 	Board
 	
 Controller
-	ShowPossibleMoves(Piece)
+	ShowPossibleMoves(Piece) (2D)
 		FillCurrentPossibleMove
 		Checked
 		Double Checked
