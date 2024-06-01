@@ -1,6 +1,10 @@
 TO DO
 	Tracing bullet
 	Drag and drop / Move
+	Seperate game/display logic
+
+REFACTOR
+	init_piece_color duplicaiton of idx
 
 Enum Color
 
