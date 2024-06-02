@@ -34,27 +34,12 @@ L_MOVE = [( 1,  2), ( 2,  1),
           (-1,  2), (-2,  1),
           (-1, -2), (-2, -1),
           ( 1, -2), ( 2, -1)]
-
 WHITE = "white"
-PAWN_WHITE_MOVE = (0,  1)
-PAWN_WHITE_ROW = 1
-PIECE_WHITE_ROW = 0
-
 BLACK = "black"
-PAWN_BLACK_MOVE = (0, -1)
-PIECE_BLACK_ROW = 7
-PAWN_BLACK_ROW = 6
-
-
-
-
-class Move:
-    def __init__(self, piece_id, pos_start, pos_end, piece_captured, board):
-        self.piece_id = piece_id
-        self.pos_start = pos_start
-        self.pos_end = pos_end
-        self.piece_captured = piece_captured
-        self.board = board
+PAWN_WHITE_MOVE = [(0,  1)]
+PAWN_WHITE_CAPTURE_MOVE = [(1, 1), (-1, 1)]
+PAWN_BLACK_MOVE = [(0, -1)]
+PAWN_BLACK_CAPTURE_MOVE = [(1, -1), (-1, -1)]
 
 
 
@@ -69,32 +54,39 @@ class Pawn(Piece):
     def __init__(self, color):
         move_delta = PAWN_WHITE_MOVE if color == WHITE else PAWN_BLACK_MOVE
         super().__init__(color, move_delta)
-        self.id = PAWN
+        self.name = PAWN
+        self.delta_rep = 2
+        self.capture_delta = PAWN_WHITE_CAPTURE_MOVE if color == WHITE else PAWN_BLACK_CAPTURE_MOVE
         
 class Rook(Piece):
     def __init__(self, color):
         super().__init__(color, LINE_MOVE)
-        self.id = ROOK
+        self.name = ROOK
+        self.delta_rep = 7
 
 class Knight(Piece):
     def __init__(self, color):
         super().__init__(color, L_MOVE)
-        self.id = KNIGHT
+        self.name = KNIGHT
+        self.delta_rep = 1
 
 class Bishop(Piece):
     def __init__(self, color):
         super().__init__(color, DIAG_MOVE)
-        self.id = BISHOP
+        self.name = BISHOP
+        self.delta_rep = 7
 
 class Queen(Piece):
     def __init__(self, color):
         super().__init__(color, LINE_MOVE + DIAG_MOVE)
-        self.id = QUEEN
+        self.name = QUEEN
+        self.delta_rep = 7
 
 class King(Piece):
     def __init__(self, color):
         super().__init__(color, LINE_MOVE + DIAG_MOVE)
-        self.id = KING
+        self.name = KING
+        self.delta_rep = 1
 
 
 
@@ -102,6 +94,7 @@ class King(Piece):
 class Game:
     def __init__(self):
         self.displayer = Displayer()
+        self.evaluator = Evaluator()
         self.run = True
         self.turn = WHITE
         self.possible_moves = []
@@ -153,6 +146,7 @@ class Game:
                 if pos in self.possible_moves:
                     self.move(self.selected_piece_pos, pos)
                     # EvaluateState()
+                    self.turn = BLACK if self.turn == WHITE else WHITE
 
                 if pos not in self.board_dict or self.board_dict[pos] == None:
                     pos = None
@@ -163,36 +157,39 @@ class Game:
     def get_possible_moves(self, pos):
         if pos == None or pos not in self.board_dict:
             return []
-
+        
         piece = self.board_dict[pos]
-
-        if piece == None:
+        if piece == None or piece.color != self.turn:
             return []
-
-        if piece.color != self.turn:
-            return []
-
-        possible_moves = []
+        
         self.selected_piece_pos = pos
+        return self.get_possible_moves_piece(piece, pos)
+    
+    def get_possible_moves_piece(self, piece, pos):
+        possible_moves = []
+        for delta in piece.move_delta:
+            curr_possible_pos = pos
+            for _ in range(piece.delta_rep):
+                next_possible_pos = add_pos(curr_possible_pos, delta)
+                if (self.is_move_oob(next_possible_pos) or
+                    self.is_move_same_color(next_possible_pos, piece.color) or
+                    (piece.name == PAWN and self.is_move_diff_color(next_possible_pos, piece.color))):
+                    break
 
-        if piece.id == KING:
-            pass
-        elif piece.id == QUEEN:
-            pass
-        elif piece.id == BISHOP:
-            pass
-        elif piece.id == KNIGHT:
-            for delta in piece.move_delta:
-                possible_moves.append(add_pos(pos, delta))
-        elif piece.id == ROOK:
-            pass
-        elif piece.id == QUEEN:
-            pass
-        elif piece.id == PAWN:
-            pass
+                possible_moves.append(next_possible_pos)
+                if (next_possible_pos in self.board_dict and
+                    self.board_dict[next_possible_pos] is not None
+                    and self.board_dict[next_possible_pos].color != piece.color):
+                    break
 
-        possible_moves = self.filter_moves(possible_moves, piece.color)
+                curr_possible_pos = next_possible_pos
 
+        if piece.name == PAWN:
+            for delta in piece.capture_delta:
+                next_possible_pos = add_pos(pos, delta)
+                if not self.is_move_oob(next_possible_pos) and self.is_move_diff_color(next_possible_pos, piece.color):
+                    possible_moves.append(next_possible_pos)
+        
         return possible_moves
 
     def is_move_oob(self, pos):
@@ -203,10 +200,10 @@ class Game:
         piece = self.board_2D[x][y]
         return piece != None and piece.color == color
     
-    def filter_moves(self, possible_moves, color):
-        return [move for move in possible_moves if
-                    not self.is_move_oob(move) and
-                    not self.is_move_same_color(move, color)]
+    def is_move_diff_color(self, pos, color):
+        x, y = pos
+        piece = self.board_2D[x][y]
+        return piece != None and piece.color != color
 
     def move(self, pos_start, pos_end):
         piece = self.board_2D[pos_start[0]][pos_start[1]]
@@ -215,6 +212,19 @@ class Game:
 
         self.board_dict[pos_end] = piece
         self.board_dict.pop(pos_start, None)
+
+
+
+
+
+class Evaluator:
+    def __init__(self):
+        pass
+
+    def evaluate(board_2D, color):
+        pass
+
+
 
 
 class Displayer:
@@ -260,13 +270,13 @@ class Displayer:
         for pos, piece in board_dict.items():
             row = PIECE_IMAGE_WHITE_ROW if piece.color == WHITE else PIECE_IMAGE_BLACK_ROW
             x = (pos[0] * TILE_SIZE)
-            if piece.id == ROOK or piece.id == ROOK or piece.id == PAWN:
+            if piece.name == ROOK or piece.name == ROOK or piece.name == PAWN:
                 x = x + OFFSET1
-            elif piece.id == KING:
+            elif piece.name == KING:
                 x = x + OFFSET2
             y = ((TILES_NB - 1 - pos[1]) * TILE_SIZE)
             screen_pos = (x, y)
-            self.screen.blit(self.pieces_img, screen_pos, self.piece_img[row][piece.id])
+            self.screen.blit(self.pieces_img, screen_pos, self.piece_img[row][piece.name])
     
     def possible_moves_display(self, possible_moves):
         for move in possible_moves:
