@@ -48,6 +48,17 @@ PAWN_BLACK_ROW = 6
 
 
 
+class Move:
+    def __init__(self, piece_id, pos_start, pos_end, piece_captured, board):
+        self.piece_id = piece_id
+        self.pos_start = pos_start
+        self.pos_end = pos_end
+        self.piece_captured = piece_captured
+        self.board = board
+
+
+
+
 class Piece:
     def __init__(self, color, move_delta):
         self.color = color
@@ -94,6 +105,7 @@ class Game:
         self.run = True
         self.turn = WHITE
         self.possible_moves = []
+        self.selected_piece_pos = None
         self.init_boards()
 
     def init_boards(self):
@@ -138,6 +150,10 @@ class Game:
                 screen_pos_y = mouse_pos[1] // TILE_SIZE
                 pos = (screen_pos_x, TILES_NB - 1 - screen_pos_y)
 
+                if pos in self.possible_moves:
+                    self.move(self.selected_piece_pos, pos)
+                    # EvaluateState()
+
                 if pos not in self.board_dict or self.board_dict[pos] == None:
                     pos = None
 
@@ -157,6 +173,7 @@ class Game:
             return []
 
         possible_moves = []
+        self.selected_piece_pos = pos
 
         if piece.id == KING:
             pass
@@ -191,7 +208,13 @@ class Game:
                     not self.is_move_oob(move) and
                     not self.is_move_same_color(move, color)]
 
+    def move(self, pos_start, pos_end):
+        piece = self.board_2D[pos_start[0]][pos_start[1]]
+        self.board_2D[pos_end[0]][pos_end[1]] = piece
+        self.board_2D[pos_start[0]][pos_start[1]] = None
 
+        self.board_dict[pos_end] = piece
+        self.board_dict.pop(pos_start, None)
 
 
 class Displayer:
