@@ -1,80 +1,95 @@
-TO DO
-	Tracing bullet
-	Drag and drop / Move
-	Seperate game/display logic
-
-REFACTOR
-	init_piece_color duplicaiton of idx
-
-Enum Color
-
-Piece
-	Pos
-	const DELTA_POS
-	Color
-	HasMoved
+Possible Moves
+	Checked
+		new var isChecked
+		propose only moves that UnChecked
+		move out, block, take the piece
+	Double Checked
+		new var isChecked
+		propose only King move
+		move out
+	King not checked
+		method isChecked(board_2D) for each possible moves
+	Pinned			 not propose moves for the pinned piece
 	
-	Pawn
-	Rook
-	Knight
-	Bishop
-	Queen
-	King
-
-Board
-	List Piece
-
+	
+	Pawn first move	 propose according to first move or nah
+	Castle
+		if king and all condition met
+			propose MOVE()
+	En passant		 propose en passant
 Move
-	PieceType
-	PosStart
-	PosEnd
-	PieceCaptured
-	Board
+	Castle:		 	 move multiple piece 
+	En passant:	 	 eaten piece not on pos end
+
+Eval
+	Castle
+		if last move has 2 pieces
+			castle to false
+	Pawn first move
+		if last move pawn and first move
+			delta_rep = 1
+	En passant
+		if last move pawn, ...
+		give possible moves to next turn
 	
-Controller
-	ShowPossibleMoves(Piece) (2D)
-		FillCurrentPossibleMove
-		Checked
-		Double Checked
-			Tree ways to get out
-				move out
-				block
-				take the piece
-		Pinned
-		Castle (if not checked)
-		En passant (last next turn only)
-	Move(Piece, Pos)
-	EvaluateGameState()
-	
-	MoveCount
-	CurrentPossibleMove
-
-
-	List Move
-	ViewMoveIdx
-	HashMoves
-
-Evaluator
-	isCheck(board, color)
-	isCheckMate(board, color)
-	isDraw(board, color)
-	isStalemate(board)
-	IsPromotion(board, color)
-	IsInsuffecientMat(board)
-	isFiftyMoves(Record)
-	isRepetition()
-		Check if Hash 3 times
-		Clear if piece captured
-	MoveFiftyCount
-	RepetionMoves
-		
-enum State
 	Check
+		form board_2D
+		check if possible moves to unchecked
+		if not: checkmate
+		give possible moves to next turn (already calculated)
 	CheckMate
-	Draw
-	Stalemaate
+		if no possible moves
+		end game
+	Discovery check
+		nohting to do (handled by check)
+	Stalemate
+		check possible moves for every piece
+		stop if at least one
 	Promotion
+		if last move is pawn and at the end
+		prevoir new screen
 	InsuffecientMat
+		start by checking number of pieces left
+		King vs King
+		King and Bishop vs. King
+		King and Knight vs. King
+		King and Bishop vs. King and Bishop (with Bishops on the same color)
+		...
 	FiftyMoves
+		var count that resets if last move is pawn or a captured occured
+		if count >= 50
 	Repetition
-	GameOn
+		keep record of moves
+		hash board_2D state
+		check if 3 times the same hash in record
+		if move pawn or captured: move idx up from where start looking the record
+
+Game
+	is_checked = bool
+	can_castle_white
+	can_castle_black
+	en_passant = List[Move()]
+	out_of_checked_moves = []
+	get_possible_moves()
+		for each move
+			if not isChecked(board_2D)
+				append
+	
+	is_checked(board_2D)
+	get_out_of_checked_moves()
+		for each piece
+			get possible moves()
+				for each move
+					isChecked(board_2D)
+	evaluation
+		if last move pawn (0, 2)
+			check if pawn next to end pos
+			
+class Move:
+    def __init__(self, pieces, pos_start, pos_end, piece_captured, board_2D):
+        self.pieces = piece
+        self.pos_start = pos_start
+        self.pos_end = pos_end
+        self.piece_captured = piece_captured
+        self.board_2D = copy.deepcopy(board_2D)
+		self.is_castle = None, 0-0, 0-0-0

@@ -1,4 +1,5 @@
 import pygame as pg
+import copy
 
 # Display constant
 TITLE = "Chess"
@@ -40,6 +41,10 @@ PAWN_WHITE_MOVE = [(0,  1)]
 PAWN_WHITE_CAPTURE_MOVE = [(1, 1), (-1, 1)]
 PAWN_BLACK_MOVE = [(0, -1)]
 PAWN_BLACK_CAPTURE_MOVE = [(1, -1), (-1, -1)]
+CASTLE_KING_SIDE = "0-0"
+CASTLE_QUEEN_SIDE = "0-0-0"
+CASTLE_MOVE_ID = 0
+EN_PASSANT_MOVE_ID = 1
 
 
 
@@ -91,15 +96,29 @@ class King(Piece):
 
 
 
+class Move:
+    def __init__(self, piece, pos_start, pos_end, piece_captured, board_2D, castle):
+        self.piece = piece
+        self.pos_start = pos_start
+        self.pos_end = pos_end
+        self.piece_captured = piece_captured
+        self.board_2D = copy.deepcopy(board_2D)
+        self.turn
+
+
+
 class Game:
     def __init__(self):
-        self.displayer = Displayer()
-        self.evaluator = Evaluator()
-        self.run = True
+        self.init_boards()
         self.turn = WHITE
         self.possible_moves = []
+        self.is_checked = False
+        self.out_of_checked_moves = []
+        self.record = []
+        
+        self.run = True
         self.selected_piece_pos = None
-        self.init_boards()
+        self.displayer = Displayer()
 
     def init_boards(self):
         self.board_2D = [
@@ -123,7 +142,6 @@ class Game:
     def main(self):
         while self.run:
             self.event_handler()
-
             self.displayer.grid_display()
             self.displayer.board_display(self.board_dict)
             self.displayer.possible_moves_display(self.possible_moves)
@@ -145,7 +163,7 @@ class Game:
 
                 if pos in self.possible_moves:
                     self.move(self.selected_piece_pos, pos)
-                    # EvaluateState()
+                    self.evaluate_state()
                     self.turn = BLACK if self.turn == WHITE else WHITE
 
                 if pos not in self.board_dict or self.board_dict[pos] == None:
@@ -163,9 +181,6 @@ class Game:
             return []
         
         self.selected_piece_pos = pos
-        return self.get_possible_moves_piece(piece, pos)
-    
-    def get_possible_moves_piece(self, piece, pos):
         possible_moves = []
         for delta in piece.move_delta:
             curr_possible_pos = pos
@@ -190,6 +205,9 @@ class Game:
                 if not self.is_move_oob(next_possible_pos) and self.is_move_diff_color(next_possible_pos, piece.color):
                     possible_moves.append(next_possible_pos)
         
+        if piece.name == KING and not piece.has_moved:
+            pass
+        
         return possible_moves
 
     def is_move_oob(self, pos):
@@ -205,24 +223,27 @@ class Game:
         piece = self.board_2D[x][y]
         return piece != None and piece.color != color
 
+    def is_checked(self):
+        pass
+
     def move(self, pos_start, pos_end):
-        piece = self.board_2D[pos_start[0]][pos_start[1]]
-        self.board_2D[pos_end[0]][pos_end[1]] = piece
+        piece_start = self.board_2D[pos_start[0]][pos_start[1]]
+        piece_end = self.board_2D[pos_end[0]][pos_end[1]]
+        self.board_2D[pos_end[0]][pos_end[1]] = piece_start
         self.board_2D[pos_start[0]][pos_start[1]] = None
 
-        self.board_dict[pos_end] = piece
+        self.board_dict[pos_end] = piece_start
         self.board_dict.pop(pos_start, None)
 
+        self.record.append(Move(piece_start, pos_start, pos_end, piece_end, self.board_2D))
 
+    def evaluate_state(self):
+        last_move = self.record[-1]
 
-
-
-class Evaluator:
-    def __init__(self):
-        pass
-
-    def evaluate(board_2D, color):
-        pass
+        # pawn first move (***watch out if promotion)
+        if last_move.piece.name == PAWN and not last_move.piece.has_moved:
+            last_move.piece.has_moved = True
+            last_move.piece.delta_rep = 1
 
 
 
