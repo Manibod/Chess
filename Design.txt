@@ -84,7 +84,44 @@ Game
 	evaluation
 		if last move pawn (0, 2)
 			check if pawn next to end pos
-			
+
+
+
+__________________________________________________________________________
+
+
+Castle
+	Get possible moves
+		if King not moved, rook not moved, path clear, no check path:
+			possible_moves(Move(pos_end, is_castle=0-0))
+	
+	Move
+		if move.is_castle:
+			castle()
+	
+	Evaluate
+		piece.has_moved = true
+		(king and rook)(assert king and rook at right pos)
+
+Pawn first move	
+	Get possible moves
+		-----
+	Move
+		-----
+	Evaluate
+		piece.has_moved = true
+		set delta_rep = 1
+
+En passant
+	Evaluate
+		if last_move.piece == PAWN and (pos_end-pos_start) = 2 and pawn next to it
+			Move()
+	Get possible moves
+		if piece = PAWN and same pos as self.en_passant
+			append
+	Move
+		-----
+
 class Move:
     def __init__(self, pieces, pos_start, pos_end, piece_captured, board_2D):
         self.pieces = piece
@@ -93,3 +130,8 @@ class Move:
         self.piece_captured = piece_captured
         self.board_2D = copy.deepcopy(board_2D)
 		self.is_castle = None, 0-0, 0-0-0
+
+has_moved
+	king
+	rook
+	pawn

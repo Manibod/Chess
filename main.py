@@ -43,8 +43,6 @@ PAWN_BLACK_MOVE = [(0, -1)]
 PAWN_BLACK_CAPTURE_MOVE = [(1, -1), (-1, -1)]
 CASTLE_KING_SIDE = "0-0"
 CASTLE_QUEEN_SIDE = "0-0-0"
-CASTLE_MOVE_ID = 0
-EN_PASSANT_MOVE_ID = 1
 
 
 
@@ -52,7 +50,6 @@ EN_PASSANT_MOVE_ID = 1
 class Piece:
     def __init__(self, color, move_delta):
         self.color = color
-        self.has_moved = False
         self.move_delta = move_delta
 
 class Pawn(Piece):
@@ -96,14 +93,23 @@ class King(Piece):
 
 
 
-class Move:
-    def __init__(self, piece, pos_start, pos_end, piece_captured, board_2D, castle):
+class MoveRecord:
+    def __init__(self, piece, move_pos, pos_start, pos_end, piece_captured, board_2D, castle, turn):
         self.piece = piece
+        self.move_pos = move_pos
         self.pos_start = pos_start
         self.pos_end = pos_end
         self.piece_captured = piece_captured
         self.board_2D = copy.deepcopy(board_2D)
-        self.turn
+        self.castle = castle
+        self.turn = turn
+
+class MovePossible:
+    def __init__(self, pos_start, move_pos, castle):
+        self.pos_start = pos_start
+        self.move_pos = move_pos
+        self.castle = castle
+
 
 
 
@@ -112,6 +118,8 @@ class Game:
         self.init_boards()
         self.turn = WHITE
         self.possible_moves = []
+        self.white_can_castle = True
+        self.black_can_castle = True
         self.is_checked = False
         self.out_of_checked_moves = []
         self.record = []
@@ -161,10 +169,13 @@ class Game:
                 screen_pos_y = mouse_pos[1] // TILE_SIZE
                 pos = (screen_pos_x, TILES_NB - 1 - screen_pos_y)
 
-                if pos in self.possible_moves:
-                    self.move(self.selected_piece_pos, pos)
-                    self.evaluate_state()
-                    self.turn = BLACK if self.turn == WHITE else WHITE
+
+                for move_possible in self.possible_moves:
+                    if move_possible.move_pos == pos:
+                        self.move(move_possible)
+                        self.evaluate_state()
+                        self.turn = BLACK if self.turn == WHITE else WHITE
+                        break
 
                 if pos not in self.board_dict or self.board_dict[pos] == None:
                     pos = None
@@ -186,12 +197,13 @@ class Game:
             curr_possible_pos = pos
             for _ in range(piece.delta_rep):
                 next_possible_pos = add_pos(curr_possible_pos, delta)
-                if (self.is_move_oob(next_possible_pos) or
-                    self.is_move_same_color(next_possible_pos, piece.color) or
-                    (piece.name == PAWN and self.is_move_diff_color(next_possible_pos, piece.color))):
+                if (self.is_move_to_oob(next_possible_pos) or
+                    self.is_move_to_same_color(next_possible_pos, piece.color) or
+                    (piece.name == PAWN and self.is_move_to_diff_color(next_possible_pos, piece.color))): # PAWN can't captured moving up
                     break
 
-                possible_moves.append(next_possible_pos)
+                possible_moves.append(MovePossible(pos, next_possible_pos, None))
+                # Stop after first opposite color reached
                 if (next_possible_pos in self.board_dict and
                     self.board_dict[next_possible_pos] is not None
                     and self.board_dict[next_possible_pos].color != piece.color):
@@ -199,26 +211,27 @@ class Game:
 
                 curr_possible_pos = next_possible_pos
 
+        # Pawn can captured but no move diagonally
         if piece.name == PAWN:
             for delta in piece.capture_delta:
                 next_possible_pos = add_pos(pos, delta)
-                if not self.is_move_oob(next_possible_pos) and self.is_move_diff_color(next_possible_pos, piece.color):
-                    possible_moves.append(next_possible_pos)
+                if not self.is_move_to_oob(next_possible_pos) and self.is_move_to_diff_color(next_possible_pos, piece.color):
+                    possible_moves.append(MovePossible(pos, next_possible_pos, None))
         
-        if piece.name == KING and not piece.has_moved:
+        if piece.name == KING:
             pass
         
         return possible_moves
 
-    def is_move_oob(self, pos):
+    def is_move_to_oob(self, pos):
         return pos[0] < 0 or pos[0] >= TILES_NB or pos[1] < 0 or pos[1] >= TILES_NB
 
-    def is_move_same_color(self, pos, color):
+    def is_move_to_same_color(self, pos, color):
         x, y = pos
         piece = self.board_2D[x][y]
         return piece != None and piece.color == color
     
-    def is_move_diff_color(self, pos, color):
+    def is_move_to_diff_color(self, pos, color):
         x, y = pos
         piece = self.board_2D[x][y]
         return piece != None and piece.color != color
@@ -226,23 +239,22 @@ class Game:
     def is_checked(self):
         pass
 
-    def move(self, pos_start, pos_end):
+    def move(self, move_possible):
+        pos_start = move_possible.pos_start
+        pos_end = move_possible.move_pos
         piece_start = self.board_2D[pos_start[0]][pos_start[1]]
         piece_end = self.board_2D[pos_end[0]][pos_end[1]]
         self.board_2D[pos_end[0]][pos_end[1]] = piece_start
         self.board_2D[pos_start[0]][pos_start[1]] = None
-
         self.board_dict[pos_end] = piece_start
         self.board_dict.pop(pos_start, None)
-
-        self.record.append(Move(piece_start, pos_start, pos_end, piece_end, self.board_2D))
+        self.record.append(MoveRecord(piece_start, pos_end, pos_start, pos_end, piece_end, self.board_2D, None, self.turn))
 
     def evaluate_state(self):
         last_move = self.record[-1]
 
         # pawn first move (***watch out if promotion)
-        if last_move.piece.name == PAWN and not last_move.piece.has_moved:
-            last_move.piece.has_moved = True
+        if last_move.piece.name == PAWN and abs(minus_pos(last_move.pos_end, last_move.pos_start)[1]) >= 2:
             last_move.piece.delta_rep = 1
 
 
@@ -300,7 +312,8 @@ class Displayer:
             self.screen.blit(self.pieces_img, screen_pos, self.piece_img[row][piece.name])
     
     def possible_moves_display(self, possible_moves):
-        for move in possible_moves:
+        for move_possible in possible_moves:
+            move = move_possible.move_pos
             x = (move[0] * TILE_SIZE) + TILE_SIZE / 2
             y = ((TILES_NB - 1 - move[1]) * TILE_SIZE) + TILE_SIZE / 2
             screen_pos = (x, y)
@@ -317,6 +330,9 @@ class Displayer:
 
 def add_pos(pos1, pos2):
     return (pos1[0] + pos2[0], pos1[1] + pos2[1])
+
+def minus_pos(pos1, pos2):
+    return (pos2[0] - pos1[0], pos2[1] - pos1[1])
 
 
 
