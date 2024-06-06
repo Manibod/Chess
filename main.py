@@ -341,7 +341,7 @@ class Game:
         # check if king can move out of check
         for delta in piece.move_delta:
             next_possible_pos = add_pos(king_pos, delta)
-            if (not self.is_move_to_oob(next_possible_pos) or
+            if (not self.is_move_to_oob(next_possible_pos) and
                 not self.is_move_to_same_color(next_possible_pos, piece.color)):
                 board_2D_copy = copy.deepcopy(board_2D)
                 self.move(king_pos, next_possible_pos, board_2D_copy, False)
