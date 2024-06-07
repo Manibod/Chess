@@ -1,3 +1,7 @@
+TO DO:
+	pinned
+	king cant capture if check after
+
 Possible Moves
 	Checked
 		new var isChecked
@@ -63,33 +67,3 @@ Eval
 		hash board_2D state
 		check if 3 times the same hash in record
 		if move pawn or captured: move idx up from where start looking the record
-
-Game
-	is_checked = bool
-	can_castle_white
-	can_castle_black
-	en_passant = List[Move()]
-	out_of_checked_moves = []
-	get_possible_moves()
-		for each move
-			if not isChecked(board_2D)
-				append
-	
-	is_checked(board_2D)
-	get_out_of_checked_moves()
-		for each piece
-			get possible moves()
-				for each move
-					isChecked(board_2D)
-	evaluation
-		if last move pawn (0, 2)
-			check if pawn next to end pos
-			
-class Move:
-    def __init__(self, pieces, pos_start, pos_end, piece_captured, board_2D):
-        self.pieces = piece
-        self.pos_start = pos_start
-        self.pos_end = pos_end
-        self.piece_captured = piece_captured
-        self.board_2D = copy.deepcopy(board_2D)
-		self.is_castle = None, 0-0, 0-0-0
