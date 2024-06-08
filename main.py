@@ -46,9 +46,6 @@ KING_BLACK_STARTING_POS = (4, 7)
 CASTLE_KING_SIDE = "0-0"
 CASTLE_QUEEN_SIDE = "0-0-0"
 
-
-
-
 class Piece:
     def __init__(self, color, move_delta):
         self.color = color
@@ -93,9 +90,6 @@ class King(Piece):
         self.name = KING
         self.delta_rep = 1
 
-
-
-
 class Move:
     def __init__(self, piece, pos_start, pos_end, piece_captured, board_2D, turn):
         self.piece = piece
@@ -104,9 +98,6 @@ class Move:
         # self.piece_captured = piece_captured
         self.board_2D = copy.deepcopy(board_2D)
         # self.turn = turn
-
-
-
 
 class Game:
     def __init__(self):
@@ -215,17 +206,32 @@ class Game:
 
                 curr_possible_pos = next_possible_pos
 
+        # Pawn can move diagonal while capturing a piece
         if piece.name == PAWN:
             for delta in piece.capture_delta:
                 next_possible_pos = add_pos(pos, delta)
                 if not self.is_move_to_oob(next_possible_pos) and self.is_move_to_diff_color(next_possible_pos, piece.color):
                     possible_moves.append(next_possible_pos)
         
+        # Castle
         if piece.name == KING and not piece.has_moved:
             pass
 
         if is_check:
+            # Filter move that will get out of check
             possible_moves = [move for move in possible_moves if move in (piece_to_capture + blocking_pos)]
+        else:
+            # Filter move that will not put king in check (ex: pinned)
+            new_possible_moves = []
+            for next_possible_pos in possible_moves:
+                board_2D_copy = copy.deepcopy(self.board_2D)
+                self.move(pos, next_possible_pos, board_2D_copy, False)
+                king_pos = self.king_white_pos if self.turn == WHITE else self.king_black_pos
+                if piece.name == KING:
+                    king_pos = next_possible_pos
+                if not self.check(board_2D_copy, king_pos):
+                    new_possible_moves.append(next_possible_pos)
+            possible_moves = new_possible_moves
 
         return possible_moves
 
@@ -381,7 +387,7 @@ class Game:
                     if move_possible in pos_save_check:
                         return False
 
-        return True
+        return len(king_pos_to_move) == 0
 
     def move(self, pos_start, pos_end, board_2D, real_move):
         piece_start = board_2D[pos_start[0]][pos_start[1]]
@@ -419,9 +425,6 @@ class Game:
             self.king_pos_to_move = []
             self.blocking_pos = []
         self.turn = BLACK if self.turn == WHITE else WHITE
-
-
-
 
 class Displayer:
     def __init__(self):
@@ -483,14 +486,8 @@ class Displayer:
     def update(self):
         pg.display.update()
 
-
-
-
 def add_pos(pos1, pos2):
     return (pos1[0] + pos2[0], pos1[1] + pos2[1])
-
-
-
 
 if __name__ == "__main__":
     mygame = Game()
