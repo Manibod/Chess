@@ -44,7 +44,10 @@ PAWN_BLACK_CAPTURE_MOVE = [(1, -1), (-1, -1)]
 KING_WHITE_STARTING_POS = (4, 0)
 KING_BLACK_STARTING_POS = (4, 7)
 CASTLE_KING_SIDE = "0-0"
+CASTLE_KING_SIDE_POS = (6, 0)
 CASTLE_QUEEN_SIDE = "0-0-0"
+CASTLE_QUEEN_SIDE_POS = "0-0-0"
+
 
 class Piece:
     def __init__(self, color, move_delta):
@@ -215,7 +218,46 @@ class Game:
         
         # Castle
         if piece.name == KING and not piece.has_moved:
-            pass
+            if piece.color == WHITE:
+                # King side
+                if self.board_2D[5][0] == None and self.board_2D[6][0] == None and self.board_2D[7][0] != None and self.board_2D[7][0].name == ROOK and not self.board_2D[7][0].has_moved:
+                    board_2D_copy_1 = copy.deepcopy(self.board_2D)
+                    board_2D_copy_2 = copy.deepcopy(self.board_2D)
+                    self.move(pos, (5, 0), board_2D_copy_1, False)
+                    self.move(pos, (6, 0), board_2D_copy_2, False)
+                    if not self.check(board_2D_copy_1, (5, 0)) and not self.check(board_2D_copy_2, (6, 0)):
+                        possible_moves.append((6, 0))
+
+                # Queen side
+                if self.board_2D[1][0] == None and self.board_2D[2][0] == None and self.board_2D[3][0] == None and self.board_2D[0][0] != None and self.board_2D[0][0].name == ROOK and not self.board_2D[0][0].has_moved:
+                    board_2D_copy_1 = copy.deepcopy(self.board_2D)
+                    board_2D_copy_2 = copy.deepcopy(self.board_2D)
+                    board_2D_copy_3 = copy.deepcopy(self.board_2D)
+                    self.move(pos, (1, 0), board_2D_copy_1, False)
+                    self.move(pos, (2, 0), board_2D_copy_2, False)
+                    self.move(pos, (3, 0), board_2D_copy_3, False)
+                    if not self.check(board_2D_copy_1, (1, 0)) and not self.check(board_2D_copy_2, (2, 0)) and not self.check(board_2D_copy_3, (3, 0)):
+                        possible_moves.append((2, 0))
+            else:
+                # King side
+                if self.board_2D[5][7] == None and self.board_2D[6][7] == None and self.board_2D[7][7] != None and self.board_2D[7][7].name == ROOK and not self.board_2D[7][7].has_moved:
+                    board_2D_copy_1 = copy.deepcopy(self.board_2D)
+                    board_2D_copy_2 = copy.deepcopy(self.board_2D)
+                    self.move(pos, (5, 7), board_2D_copy_1, False)
+                    self.move(pos, (6, 7), board_2D_copy_2, False)
+                    if not self.check(board_2D_copy_1, (5, 7)) and not self.check(board_2D_copy_2, (6, 7)):
+                        possible_moves.append((6, 7))
+
+                # Queen side
+                if self.board_2D[1][7] == None and self.board_2D[2][7] == None and self.board_2D[3][7] == None and self.board_2D[0][7] != None and self.board_2D[0][7].name == ROOK and not self.board_2D[0][7].has_moved:
+                    board_2D_copy_1 = copy.deepcopy(self.board_2D)
+                    board_2D_copy_2 = copy.deepcopy(self.board_2D)
+                    board_2D_copy_3 = copy.deepcopy(self.board_2D)
+                    self.move(pos, (1, 7), board_2D_copy_1, False)
+                    self.move(pos, (2, 7), board_2D_copy_2, False)
+                    self.move(pos, (3, 7), board_2D_copy_3, False)
+                    if not self.check(board_2D_copy_1, (1, 7)) and not self.check(board_2D_copy_2, (2, 7)) and not self.check(board_2D_copy_3, (3, 7)):
+                        possible_moves.append((2, 7))
 
         if is_check:
             # Filter move that will get out of check
@@ -409,6 +451,7 @@ class Game:
 
     def evaluate_state(self):
         last_move = self.record[-1]
+        last_move.piece.has_moved = True
 
         # Pawn after first move
         if last_move.piece.name == PAWN:

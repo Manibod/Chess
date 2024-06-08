@@ -1,6 +1,6 @@
 TO DO:
-	pinned
-	king cant capture if check after
+	Castle
+	red square if checked
 
 Possible Moves
 	Checked
