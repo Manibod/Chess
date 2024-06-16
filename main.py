@@ -1,111 +1,10 @@
 import pygame as pg
 import copy
 
-# Display constant
-TITLE = "Chess"
-TILES_NB = 8
-TILE_SIZE = 98
-WINDOW_WIDTH  = TILES_NB * TILE_SIZE
-WINDOW_HEIGHT = TILES_NB * TILE_SIZE
-TILE_WHITE_COLOR   = (235, 236, 208)
-TILE_BLACK_COLOR   = (115, 149, 82)
-TILE_SELECTED_WHITE_COLOR = (245, 246, 130)
-TILE_SELECTED_BLACK_COLOR = (185, 202, 67)
-TILE_CHECK_WHITE_COLOR = (224, 111, 103)
-TILE_CHECK_BLACK_COLOR = (209, 65, 54)
-POSSIBLE_MOVES_COLOR  = (92, 89, 87, 120)
-PIECE_FILENAME = "pieces.png"
-PIECE_IMAGE_NB_ROWS = 2
-PIECE_IMAGE_NB_COL = 6
-PIECE_IMAGE_WHITE_ROW = 0
-PIECE_IMAGE_BLACK_ROW = 1
-KING = 0
-QUEEN = 1
-BISHOP = 2
-KNIGHT = 3
-ROOK = 4
-PAWN = 5
-OFFSET1 = -3
-OFFSET2 = 1
-SCALING_W = 575
-SCALING_H = 200
-
-# Game constant
-LINE_MOVE = [(1, 0), (-1, 0), (0, 1), (0, -1)]
-DIAG_MOVE = [(1, 1), (-1, 1), (-1, -1), (1, -1)]
-L_MOVE = [( 1,  2), ( 2,  1),
-          (-1,  2), (-2,  1),
-          (-1, -2), (-2, -1),
-          ( 1, -2), ( 2, -1)]
-WHITE = "white"
-BLACK = "black"
-PAWN_WHITE_MOVE = [(0,  1)]
-PAWN_WHITE_CAPTURE_MOVE = [(1, 1), (-1, 1)]
-PAWN_BLACK_MOVE = [(0, -1)]
-PAWN_BLACK_CAPTURE_MOVE = [(1, -1), (-1, -1)]
-KING_WHITE_STARTING_POS = (4, 0)
-KING_BLACK_STARTING_POS = (4, 7)
-
-PIECE_WHITE_ROW = 0
-PIECE_BLACK_ROW = 7
-ROOK_KINGSIDE_COL = 7
-ROOK_QUEENSIDE_COL = 0
-CASTLE_KINGSIDE_CHECK_COL = [5, 6]
-CASTLE_QUEENSIDE_CHECK_COL = [1, 2, 3]
-KING_CASTLE_KINGSIDE_COL = 6
-KING_CASTLE_QUEENSIDE_COL = 2
-ROOK_CASTLE_KINGSIDE_COL = 5
-ROOK_CASTLE_QUEENSIDE_COL = 3
-POS_WHITE_KING_KINGSIDE_CASTLE = (KING_CASTLE_KINGSIDE_COL, PIECE_WHITE_ROW)
-POS_WHITE_KING_QUEENSIDE_CASTLE = (KING_CASTLE_QUEENSIDE_COL, PIECE_WHITE_ROW)
-POS_BLACK_KING_KINGSIDE_CASTLE = (KING_CASTLE_KINGSIDE_COL, PIECE_BLACK_ROW)
-POS_BLACK_KING_QUEENSIDE_CASTLE = (KING_CASTLE_QUEENSIDE_COL, PIECE_BLACK_ROW)
-POS_WHITE_KING_CASTLE = [POS_WHITE_KING_KINGSIDE_CASTLE, POS_WHITE_KING_QUEENSIDE_CASTLE]
-POS_BLACK_KING_CASTLE = [POS_BLACK_KING_KINGSIDE_CASTLE, POS_BLACK_KING_QUEENSIDE_CASTLE]
-
-class Piece:
-    def __init__(self, color, move_delta):
-        self.color = color
-        self.has_moved = False
-        self.move_delta = move_delta
-
-class Pawn(Piece):
-    def __init__(self, color):
-        move_delta = PAWN_WHITE_MOVE if color == WHITE else PAWN_BLACK_MOVE
-        super().__init__(color, move_delta)
-        self.name = PAWN
-        self.delta_rep = 2
-        self.capture_delta = PAWN_WHITE_CAPTURE_MOVE if color == WHITE else PAWN_BLACK_CAPTURE_MOVE
-        
-class Rook(Piece):
-    def __init__(self, color):
-        super().__init__(color, LINE_MOVE)
-        self.name = ROOK
-        self.delta_rep = 7
-
-class Knight(Piece):
-    def __init__(self, color):
-        super().__init__(color, L_MOVE)
-        self.name = KNIGHT
-        self.delta_rep = 1
-
-class Bishop(Piece):
-    def __init__(self, color):
-        super().__init__(color, DIAG_MOVE)
-        self.name = BISHOP
-        self.delta_rep = 7
-
-class Queen(Piece):
-    def __init__(self, color):
-        super().__init__(color, LINE_MOVE + DIAG_MOVE)
-        self.name = QUEEN
-        self.delta_rep = 7
-
-class King(Piece):
-    def __init__(self, color):
-        super().__init__(color, LINE_MOVE + DIAG_MOVE)
-        self.name = KING
-        self.delta_rep = 1
+from constant import *
+from displayer import Displayer
+from piece import *
+from utils import *
 
 class Move:
     def __init__(self, piece, pos_start, pos_end, piece_captured, board_2D, turn):
@@ -180,7 +79,7 @@ class Game:
                 if event.key == pg.K_ESCAPE:
                     self.run = False
             elif event.type == pg.MOUSEBUTTONDOWN:
-                pos = self.mouse_pos_to_tile_pos(pg.mouse.get_pos())
+                pos = mouse_pos_to_tile_pos(pg.mouse.get_pos())
 
                 if pos in self.possible_moves:
                     self.move(self.selected_piece_pos, pos, self.board_2D, True)
@@ -195,24 +94,6 @@ class Game:
                         self.selected_piece_pos = pos
                         if piece.color == self.turn:
                             self.possible_moves = self.get_possible_moves(pos, self.is_check, self.check_moves)
-    
-    def mouse_pos_to_tile_pos(self, mouse_pos):
-        screen_pos_x = mouse_pos[0] // TILE_SIZE
-        screen_pos_y = mouse_pos[1] // TILE_SIZE
-        return (screen_pos_x, TILES_NB - 1 - screen_pos_y)
-    
-    def is_move_to_oob(self, pos):
-        return pos[0] < 0 or pos[0] >= TILES_NB or pos[1] < 0 or pos[1] >= TILES_NB
-
-    def is_move_to_same_color(self, pos, color):
-        x, y = pos
-        piece = self.board_2D[x][y]
-        return piece != None and piece.color == color
-    
-    def is_move_to_diff_color(self, pos, color):
-        x, y = pos
-        piece = self.board_2D[x][y]
-        return piece != None and piece.color != color
 
     def get_possible_moves(self, pos, is_check=False, check_moves=None):
         assert(not is_check or check_moves)
@@ -230,16 +111,16 @@ class Game:
             curr_possible_pos = pos
             for _ in range(piece.delta_rep):
                 next_possible_pos = add_pos(curr_possible_pos, delta)
-                if (self.is_move_to_oob(next_possible_pos) or
-                    self.is_move_to_same_color(next_possible_pos, piece.color) or
+                if (is_move_to_oob(next_possible_pos) or
+                    is_move_to_same_color(next_possible_pos, piece.color, self.board_2D) or
                     # Pawn can't capture moving up
-                    (piece.name == PAWN and self.is_move_to_diff_color(next_possible_pos, piece.color))):
+                    (piece.name == PAWN and is_move_to_diff_color(next_possible_pos, piece.color, self.board_2D))):
                     break
 
                 possible_moves.append(next_possible_pos)
 
                 # Stop search of possible moves after reaching first opposite color
-                if (self.is_move_to_diff_color(next_possible_pos, piece.color)):
+                if (is_move_to_diff_color(next_possible_pos, piece.color, self.board_2D)):
                     break
 
                 curr_possible_pos = next_possible_pos
@@ -248,7 +129,7 @@ class Game:
         if piece.name == PAWN:
             for delta in piece.capture_delta:
                 next_possible_pos = add_pos(pos, delta)
-                if not self.is_move_to_oob(next_possible_pos) and self.is_move_to_diff_color(next_possible_pos, piece.color):
+                if not is_move_to_oob(next_possible_pos) and is_move_to_diff_color(next_possible_pos, piece.color, self.board_2D):
                     possible_moves.append(next_possible_pos)
         
         # Castle
@@ -354,124 +235,68 @@ class Game:
             self.record.append(Move(king_piece, king_pos_start, king_pos_end, None, board_2D, king_piece.color))
 
     def check(self, board_2D, king_pos):
+        return self.checkmate(True, board_2D, king_pos, CheckMoves())
+
+    def checkmate(self, check_only, board_2D, king_pos, check_moves):
         # start from king's pos and check if anyone attacking it
         piece = board_2D[king_pos[0]][king_pos[1]]
         assert(piece.name == KING)
-
-        # check knight attack
-        for delta in L_MOVE:
-            attacking_pos = add_pos(king_pos, delta)
-            if (not self.is_move_to_oob(attacking_pos) and
-               self.is_move_to_diff_color(attacking_pos, piece.color) and
-               board_2D[attacking_pos[0]][attacking_pos[1]].name == KNIGHT):
-               return True
         
-        # check diag attack
-        for delta in DIAG_MOVE:
-            curr_possible_pos = king_pos
-            for _ in range(TILES_NB - 1):
-                attacking_pos = add_pos(curr_possible_pos, delta)
-                if self.is_move_to_oob(attacking_pos):
-                    break
-                attacking_piece = board_2D[attacking_pos[0]][attacking_pos[1]]
-                if attacking_piece != None:
-                    if (attacking_piece.color != piece.color and (attacking_piece.name == BISHOP or attacking_piece.name == QUEEN)):
-                        return True
-                    break
-                curr_possible_pos = attacking_pos
-        
-        # check line attack
-        for delta in LINE_MOVE:
-            curr_possible_pos = king_pos
-            for _ in range(TILES_NB - 1):
-                attacking_pos = add_pos(curr_possible_pos, delta)
-                if self.is_move_to_oob(attacking_pos):
-                    break
-                attacking_piece = board_2D[attacking_pos[0]][attacking_pos[1]]
-                if attacking_piece != None:
-                    if (attacking_piece.color != piece.color and (attacking_piece.name == ROOK or attacking_piece.name == QUEEN)):
-                        return True
-                    break
-                curr_possible_pos = attacking_pos
-        
-        # check pawn attack
-        capture_moves = PAWN_WHITE_CAPTURE_MOVE if piece.color == WHITE else PAWN_BLACK_CAPTURE_MOVE
-        for delta in capture_moves:
-            attacking_pos = add_pos(king_pos, delta)
-            if (not self.is_move_to_oob(attacking_pos) and
-               self.is_move_to_diff_color(attacking_pos, piece.color) and
-               board_2D[attacking_pos[0]][attacking_pos[1]].name == PAWN):
-               return True
-        
-        return False
-
-    def checkmate(self, board_2D, king_pos, check_moves):
-        # start from king's pos and check if anyone attacking it
-        piece = board_2D[king_pos[0]][king_pos[1]]
-        assert(piece.name == KING)
-
-        # check knight attack
-        for delta in L_MOVE:
-            attacking_pos = add_pos(king_pos, delta)
-            if (not self.is_move_to_oob(attacking_pos) and
-               self.is_move_to_diff_color(attacking_pos, piece.color) and
-               board_2D[attacking_pos[0]][attacking_pos[1]].name == KNIGHT):
-               check_moves.piece_to_capture.append(attacking_pos)
-        
-        # check diag attack
-        for delta in DIAG_MOVE:
-            curr_possible_pos = king_pos
-            current_block_pos = []
-            for _ in range(TILES_NB - 1):
-                attacking_pos = add_pos(curr_possible_pos, delta)
-                if self.is_move_to_oob(attacking_pos):
-                    current_block_pos = []
-                    break
-                attacking_piece = board_2D[attacking_pos[0]][attacking_pos[1]]
-                if attacking_piece != None:
-                    if (attacking_piece.color != piece.color and (attacking_piece.name == BISHOP or attacking_piece.name == QUEEN)):
-                        check_moves.piece_to_capture.append(attacking_pos)
+        def check_long_attack(delta_moves, attacking_pieces_name):
+            for delta in delta_moves:
+                curr_possible_pos = king_pos
+                current_block_pos = []
+                for _ in range(TILES_NB - 1):
+                    attacking_pos = add_pos(curr_possible_pos, delta)
+                    if is_move_to_oob(attacking_pos):
+                        current_block_pos = []
                         break
-                    current_block_pos = []
-                    break
-                curr_possible_pos = attacking_pos
-                current_block_pos.append(attacking_pos)
-            check_moves.blocking_pos.extend(current_block_pos)
-        
-        # check line attack
-        for delta in LINE_MOVE:
-            curr_possible_pos = king_pos
-            current_block_pos = []
-            for _ in range(TILES_NB - 1):
-                attacking_pos = add_pos(curr_possible_pos, delta)
-                if self.is_move_to_oob(attacking_pos):
-                    current_block_pos = []
-                    break
-                attacking_piece = board_2D[attacking_pos[0]][attacking_pos[1]]
-                if attacking_piece != None:
-                    if (attacking_piece.color != piece.color and (attacking_piece.name == ROOK or attacking_piece.name == QUEEN)):
-                        check_moves.piece_to_capture.append(attacking_pos)
+                    attacking_piece = board_2D[attacking_pos[0]][attacking_pos[1]]
+                    if attacking_piece != None:
+                        if (attacking_piece.color != piece.color and attacking_piece.name in attacking_pieces_name):
+                            check_moves.piece_to_capture.append(attacking_pos)
+                            if check_only:
+                                return True
+                            break
+                        current_block_pos = []
                         break
-                    current_block_pos = []
-                    break
-                curr_possible_pos = attacking_pos
-                current_block_pos.append(attacking_pos)
-            check_moves.blocking_pos.extend(current_block_pos)
+                    curr_possible_pos = attacking_pos
+                    current_block_pos.append(attacking_pos)
+                check_moves.blocking_pos.extend(current_block_pos)
+            return False
         
-        # check pawn attack
+        def check_direct_attack(delta_moves, attacking_piece_name):
+            for delta in delta_moves:
+                attacking_pos = add_pos(king_pos, delta)
+                if (not is_move_to_oob(attacking_pos) and
+                is_move_to_diff_color(attacking_pos, piece.color, self.board_2D) and
+                board_2D[attacking_pos[0]][attacking_pos[1]].name == attacking_piece_name):
+                    if check_only:
+                        return True
+                    check_moves.piece_to_capture.append(attacking_pos)
+            return False
+
+        if check_long_attack(DIAG_MOVE, [BISHOP, QUEEN]):
+            return True
+        
+        if check_long_attack(LINE_MOVE, [ROOK, QUEEN]):
+            return True
+        
+        if check_direct_attack(L_MOVE, KNIGHT):
+            return True
+
         capture_moves = PAWN_WHITE_CAPTURE_MOVE if piece.color == WHITE else PAWN_BLACK_CAPTURE_MOVE
-        for delta in capture_moves:
-            attacking_pos = add_pos(king_pos, delta)
-            if (not self.is_move_to_oob(attacking_pos) and
-               self.is_move_to_diff_color(attacking_pos, piece.color) and
-               board_2D[attacking_pos[0]][attacking_pos[1]].name == PAWN):
-               check_moves.piece_to_capture.append(attacking_pos)
+        if check_direct_attack(capture_moves, PAWN):
+            return True
+
+        if check_only:
+            return False
         
         # check if king can move out of check
         for delta in piece.move_delta:
             next_possible_pos = add_pos(king_pos, delta)
-            if (not self.is_move_to_oob(next_possible_pos) and
-                not self.is_move_to_same_color(next_possible_pos, piece.color)):
+            if (not is_move_to_oob(next_possible_pos) and
+                not is_move_to_same_color(next_possible_pos, piece.color, self.board_2D)):
                 board_2D_copy = copy.deepcopy(board_2D)
                 self.move(king_pos, next_possible_pos, board_2D_copy, False)
                 if not self.check(board_2D_copy, next_possible_pos):
@@ -505,85 +330,12 @@ class Game:
         # Checked
         king_pos = self.king_black_pos if self.turn == WHITE else self.king_white_pos
         self.is_check = self.check(self.board_2D, king_pos)
-        self.is_checkmate = self.is_check and self.checkmate(self.board_2D, king_pos, self.check_moves)
+        self.is_checkmate = self.is_check and self.checkmate(False, self.board_2D, king_pos, self.check_moves)
         if self.is_checkmate:
             self.run = False
         if not self.is_check:
             self.check_moves.clear()
         self.turn = BLACK if self.turn == WHITE else WHITE
-
-class Displayer:
-    def __init__(self):
-        pg.init()
-        pg.display.set_caption(TITLE)
-        self.screen = pg.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
-        self.init_piece_image()
-
-    def init_piece_image(self):
-        self.pieces_img = pg.image.load(PIECE_FILENAME).convert_alpha()
-        self.pieces_img = pg.transform.scale(self.pieces_img, (SCALING_W, SCALING_H))
-        img_rect = self.pieces_img.get_rect()
-        w = img_rect.width // PIECE_IMAGE_NB_COL
-        h = img_rect.height // PIECE_IMAGE_NB_ROWS
-        self.piece_img = [
-            [(i % PIECE_IMAGE_NB_COL * w, 0, w, h) for i in range(PIECE_IMAGE_NB_COL)],
-            [(i % PIECE_IMAGE_NB_COL * w, h, w, h) for i in range(PIECE_IMAGE_NB_COL)]
-        ]
-
-    def grid_display(self, selected_tile_pos):
-        self.screen.fill(TILE_BLACK_COLOR)
-        for row in range(TILES_NB):
-            for col in range(row % 2, TILES_NB, 2):
-                pg.draw.rect(
-                    self.screen,
-                    TILE_WHITE_COLOR,
-                    (row * TILE_SIZE, col * TILE_SIZE, TILE_SIZE, TILE_SIZE)
-                )
-
-        if selected_tile_pos:
-            color = TILE_SELECTED_WHITE_COLOR if (selected_tile_pos[0] % 2 + selected_tile_pos[1] % 2) % 2 else TILE_SELECTED_BLACK_COLOR
-            x = selected_tile_pos[0]
-            y = TILES_NB - 1 - selected_tile_pos[1]
-            pg.draw.rect(
-                self.screen,
-                color,
-                (x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE)
-            )
-
-    def board_display(self, board_dict):
-        for pos, piece in board_dict.items():
-            row = PIECE_IMAGE_WHITE_ROW if piece.color == WHITE else PIECE_IMAGE_BLACK_ROW
-            x = (pos[0] * TILE_SIZE)
-            if piece.name == ROOK or piece.name == ROOK or piece.name == PAWN:
-                x = x + OFFSET1
-            elif piece.name == KING:
-                x = x + OFFSET2
-            y = ((TILES_NB - 1 - pos[1]) * TILE_SIZE)
-            screen_pos = (x, y)
-            self.screen.blit(self.pieces_img, screen_pos, self.piece_img[row][piece.name])
-    
-    def possible_moves_display(self, possible_moves):
-        for move in possible_moves:
-            x = (move[0] * TILE_SIZE) + TILE_SIZE / 2
-            y = ((TILES_NB - 1 - move[1]) * TILE_SIZE) + TILE_SIZE / 2
-            screen_pos = (x, y)
-            pg.draw.circle(self.screen, POSSIBLE_MOVES_COLOR, screen_pos, TILE_SIZE / 2, 5)
-    
-    def check(self, king_pos, color):
-        color = TILE_CHECK_WHITE_COLOR if (king_pos[0] % 2 + king_pos[1] % 2) % 2 else TILE_CHECK_BLACK_COLOR
-        x = king_pos[0]
-        y = TILES_NB - 1 - king_pos[1]
-        pg.draw.rect(
-            self.screen,
-            color,
-            (x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE)
-        )
-
-    def update(self):
-        pg.display.update()
-
-def add_pos(pos1, pos2):
-    return (pos1[0] + pos2[0], pos1[1] + pos2[1])
 
 if __name__ == "__main__":
     mygame = Game()

@@ -1,6 +1,10 @@
 TO DO:
-	Castle
-	red square if checked
+	en passant
+	Stalemate
+	Promotion
+	InsuffecientMat
+	FiftyMoves
+	Repetition
 
 Possible Moves
 	Checked
