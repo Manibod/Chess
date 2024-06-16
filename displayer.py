@@ -21,7 +21,7 @@ class Displayer:
             [(i % PIECE_IMAGE_NB_COL * w, h, w, h) for i in range(PIECE_IMAGE_NB_COL)]
         ]
 
-    def grid_display(self, selected_tile_pos):
+    def grid_display(self):
         self.screen.fill(TILE_BLACK_COLOR)
         for row in range(TILES_NB):
             for col in range(row % 2, TILES_NB, 2):
@@ -31,15 +31,25 @@ class Displayer:
                     (row * TILE_SIZE, col * TILE_SIZE, TILE_SIZE, TILE_SIZE)
                 )
 
-        if selected_tile_pos:
-            color = TILE_SELECTED_WHITE_COLOR if (selected_tile_pos[0] % 2 + selected_tile_pos[1] % 2) % 2 else TILE_SELECTED_BLACK_COLOR
-            x = selected_tile_pos[0]
-            y = TILES_NB - 1 - selected_tile_pos[1]
-            pg.draw.rect(
-                self.screen,
-                color,
-                (x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE)
-            )
+    def check_display(self, king_pos, color):
+        color = TILE_CHECK_WHITE_COLOR if (king_pos[0] % 2 + king_pos[1] % 2) % 2 else TILE_CHECK_BLACK_COLOR
+        x = king_pos[0]
+        y = TILES_NB - 1 - king_pos[1]
+        pg.draw.rect(
+            self.screen,
+            color,
+            (x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE)
+        )
+
+    def selected_tile_display(self, selected_tile_pos):
+        color = TILE_SELECTED_WHITE_COLOR if (selected_tile_pos[0] % 2 + selected_tile_pos[1] % 2) % 2 else TILE_SELECTED_BLACK_COLOR
+        x = selected_tile_pos[0]
+        y = TILES_NB - 1 - selected_tile_pos[1]
+        pg.draw.rect(
+            self.screen,
+            color,
+            (x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE)
+        )
 
     def board_display(self, board_dict):
         for pos, piece in board_dict.items():
@@ -59,16 +69,6 @@ class Displayer:
             y = ((TILES_NB - 1 - move[1]) * TILE_SIZE) + TILE_SIZE / 2
             screen_pos = (x, y)
             pg.draw.circle(self.screen, POSSIBLE_MOVES_COLOR, screen_pos, TILE_SIZE / 2, 5)
-    
-    def check(self, king_pos, color):
-        color = TILE_CHECK_WHITE_COLOR if (king_pos[0] % 2 + king_pos[1] % 2) % 2 else TILE_CHECK_BLACK_COLOR
-        x = king_pos[0]
-        y = TILES_NB - 1 - king_pos[1]
-        pg.draw.rect(
-            self.screen,
-            color,
-            (x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE)
-        )
 
     def update(self):
         pg.display.update()

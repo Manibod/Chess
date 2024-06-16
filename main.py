@@ -62,10 +62,12 @@ class Game:
     def main(self):
         while self.run:
             self.event_handler()
-            self.displayer.grid_display(self.selected_piece_pos)
+            self.displayer.grid_display()
             if self.is_check:
                 king_pos = self.king_white_pos if self.turn == WHITE else self.king_black_pos
-                self.displayer.check(king_pos, self.turn)
+                self.displayer.check_display(king_pos, self.turn)
+            if self.selected_piece_pos:
+                self.displayer.selected_tile_display(self.selected_piece_pos)
             self.displayer.board_display(self.board_dict)
             self.displayer.possible_moves_display(self.possible_moves)
             self.displayer.update()
