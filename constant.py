@@ -34,6 +34,7 @@ L_MOVE = [( 1,  2), ( 2,  1),
           (-1,  2), (-2,  1),
           (-1, -2), (-2, -1),
           ( 1, -2), ( 2, -1)]
+SIDE_MOVE = [(-1, 0), (1, 0)]
 WHITE = "white"
 BLACK = "black"
 PAWN_WHITE_MOVE = [(0,  1)]

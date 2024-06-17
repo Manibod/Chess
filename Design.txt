@@ -1,5 +1,8 @@
 TO DO:
-	en passant
+	rename function utils
+	recheck what is passed in param
+	refactor if update
+
 	Stalemate
 	Promotion
 	InsuffecientMat

@@ -9,13 +9,20 @@ from utils import *
 class Move:
     def __init__(self, piece, pos_start, pos_end, piece_captured, board_2D, turn):
         self.piece = piece
-        # self.pos_start = pos_start
-        # self.pos_end = pos_end
+        self.pos_start = pos_start
+        self.pos_end = pos_end
         # self.piece_captured = piece_captured
         self.board_2D = copy.deepcopy(board_2D)
         # self.turn = turn
 
-class CheckMoves:
+class MoveEnPassant:
+    def __init__(self, piece, pos_start, pos_end, piece_captured):
+        self.piece = piece
+        self.pos_start = pos_start
+        self.pos_end = pos_end
+        self.piece_captured = piece_captured
+
+class MoveCheck:
     def __init__(self):
         self.clear()
     
@@ -33,7 +40,8 @@ class Game:
         self.possible_moves = []
         self.is_check = False
         self.is_checkmate = False
-        self.check_moves = CheckMoves()
+        self.check_moves = MoveCheck()
+        self.en_passant_moves = []
         self.record = []
         
         self.run = True
@@ -133,15 +141,21 @@ class Game:
                 next_possible_pos = add_pos(pos, delta)
                 if not is_move_to_oob(next_possible_pos) and is_move_to_diff_color(next_possible_pos, piece.color, self.board_2D):
                     possible_moves.append(next_possible_pos)
-        
+
+            # En Passant
+            for move in self.en_passant_moves:
+                if pos == move.pos_start:
+                    possible_moves.append(move.pos_end)
+                    break
+
         # Castle
         if self.can_castle(True, pos, piece, self.board_2D):
             possible_moves.append(POS_WHITE_KING_KINGSIDE_CASTLE if piece.color == WHITE else POS_BLACK_KING_KINGSIDE_CASTLE)
         if self.can_castle(False, pos, piece, self.board_2D):
             possible_moves.append(POS_WHITE_KING_QUEENSIDE_CASTLE if piece.color == WHITE else POS_BLACK_KING_QUEENSIDE_CASTLE)
 
+        # Filter move that will get out of check
         if is_check:
-            # Filter move that will get out of check
             possible_moves = [move for move in possible_moves if move in (check_moves.piece_to_capture + check_moves.blocking_pos)]
         else:
             # Filter move that will not put king in check (e.g. pinned and king moving to check)
@@ -186,11 +200,20 @@ class Game:
         piece_start = board_2D[pos_start[0]][pos_start[1]]
         piece_end = board_2D[pos_end[0]][pos_end[1]]
 
+        # Castle
         if piece_start.name == KING and not piece_start.has_moved:
             possible_castle_pos = POS_WHITE_KING_CASTLE if piece_start.color == WHITE else POS_BLACK_KING_CASTLE
             if pos_end in possible_castle_pos:
                 self.move_castle(pos_start, pos_end, board_2D, update)
                 return
+        
+        # En Passant
+        if piece_start.name == PAWN and abs(pos_end[0] - pos_start[0]) >= 1 and piece_end == None:
+            delta = PAWN_BLACK_MOVE if piece_start.color == WHITE else PAWN_WHITE_MOVE
+            pos_captured = add_pos(pos_end, delta[0])
+            board_2D[pos_captured[0]][pos_captured[1]] = None
+            if update:
+                self.board_dict.pop(pos_captured, None)
 
         board_2D[pos_end[0]][pos_end[1]] = piece_start
         board_2D[pos_start[0]][pos_start[1]] = None
@@ -237,10 +260,10 @@ class Game:
             self.record.append(Move(king_piece, king_pos_start, king_pos_end, None, board_2D, king_piece.color))
 
     def check(self, board_2D, king_pos):
-        return self.checkmate(True, board_2D, king_pos, CheckMoves())
+        return self.checkmate(True, board_2D, king_pos, MoveCheck())
 
     def checkmate(self, check_only, board_2D, king_pos, check_moves):
-        # start from king's pos and check if anyone attacking it
+        # Start from king's pos and check if anyone attacking it
         piece = board_2D[king_pos[0]][king_pos[1]]
         assert(piece.name == KING)
         
@@ -294,7 +317,7 @@ class Game:
         if check_only:
             return False
         
-        # check if king can move out of check
+        # Check if king can move out of check
         for delta in piece.move_delta:
             next_possible_pos = add_pos(king_pos, delta)
             if (not is_move_to_oob(next_possible_pos) and
@@ -304,13 +327,13 @@ class Game:
                 if not self.check(board_2D_copy, next_possible_pos):
                     check_moves.king_pos_to_move.append(next_possible_pos)
         
-        # double check, only king move possible
+        # Double check, only king move possible
         if len(check_moves.piece_to_capture) >= 2:
             check_moves.piece_to_capture = []
             check_moves.blocking_pos = []
             return len(check_moves.king_pos_to_move) == 0
         
-        # check if any piece can block or capture
+        # Check if any piece can block or capture
         pos_save_check = check_moves.piece_to_capture + check_moves.blocking_pos
         for pos, p in self.board_dict.items():
             if p.color == piece.color:
@@ -323,11 +346,26 @@ class Game:
 
     def evaluate_state(self):
         last_move = self.record[-1]
-        last_move.piece.has_moved = True
+        piece = last_move.piece
+        piece.has_moved = True
+        self.en_passant_moves = []
+        self.check_moves.clear()
 
-        # Pawn after first move
-        if last_move.piece.name == PAWN:
-            last_move.piece.delta_rep = 1
+        if piece.name == PAWN:
+            # Pawn after first move
+            piece.delta_rep = 1
+            if abs(last_move.pos_end[1] - last_move.pos_start[1]) >= 2:
+                # Check for En passant
+                for delta in SIDE_MOVE:
+                    attacking_pos = add_pos(last_move.pos_end, delta)
+                    if is_move_to_oob(attacking_pos):
+                        continue
+                    attacking_piece = self.board_2D[attacking_pos[0]][attacking_pos[1]]
+                    if (attacking_piece != None and
+                        is_move_to_diff_color(attacking_pos, piece.color, self.board_2D) and
+                        self.board_2D[attacking_pos[0]][attacking_pos[1]].name == PAWN):
+                        attacking_piece_end_pos = add_pos(last_move.pos_end, attacking_piece.move_delta[0])
+                        self.en_passant_moves.append(MoveEnPassant(attacking_piece, attacking_pos, attacking_piece_end_pos, piece))
 
         # Checked
         king_pos = self.king_black_pos if self.turn == WHITE else self.king_white_pos
@@ -335,8 +373,6 @@ class Game:
         self.is_checkmate = self.is_check and self.checkmate(False, self.board_2D, king_pos, self.check_moves)
         if self.is_checkmate:
             self.run = False
-        if not self.is_check:
-            self.check_moves.clear()
         self.turn = BLACK if self.turn == WHITE else WHITE
 
 if __name__ == "__main__":
