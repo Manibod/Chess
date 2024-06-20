@@ -293,9 +293,12 @@ class Game:
         def check_direct_attack(delta_moves, attacking_piece_name):
             for delta in delta_moves:
                 attacking_pos = add_pos(king_pos, delta)
-                if (not is_move_to_oob(attacking_pos) and
-                is_move_to_diff_color(attacking_pos, piece.color, self.board_2D) and
-                board_2D[attacking_pos[0]][attacking_pos[1]].name == attacking_piece_name):
+                if is_move_to_oob(attacking_pos):
+                    continue
+                attacking_piece = board_2D[attacking_pos[0]][attacking_pos[1]]
+                if (attacking_piece != None and
+                   is_move_to_diff_color(attacking_pos, piece.color, self.board_2D) and
+                   board_2D[attacking_pos[0]][attacking_pos[1]].name == attacking_piece_name):
                     if check_only:
                         return True
                     check_moves.piece_to_capture.append(attacking_pos)
@@ -343,6 +346,15 @@ class Game:
                         return False
 
         return len(check_moves.king_pos_to_move) == 0
+    
+    def is_stalemate(self, board_dict, turn):
+        for pos, p in board_dict.items():
+            if p.color == turn:
+                possible_move = self.get_possible_moves(pos)
+                if possible_move:
+                    return False
+        
+        return True
 
     def evaluate_state(self):
         last_move = self.record[-1]
@@ -371,7 +383,7 @@ class Game:
         king_pos = self.king_black_pos if self.turn == WHITE else self.king_white_pos
         self.is_check = self.check(self.board_2D, king_pos)
         self.is_checkmate = self.is_check and self.checkmate(False, self.board_2D, king_pos, self.check_moves)
-        if self.is_checkmate:
+        if self.is_checkmate or self.is_stalemate(self.board_dict, BLACK if self.turn == WHITE else WHITE):
             self.run = False
         self.turn = BLACK if self.turn == WHITE else WHITE
 

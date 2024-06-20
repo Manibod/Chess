@@ -2,6 +2,7 @@ TO DO:
 	rename function utils
 	recheck what is passed in param
 	refactor if update
+	seperate board_dict for each color
 
 	Stalemate
 	Promotion
