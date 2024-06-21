@@ -1,14 +1,12 @@
 TO DO:
-	rename function utils
-	recheck what is passed in param
-	refactor if update
-	seperate board_dict for each color
+	refactor move() (if update)
 
-	Stalemate
 	Promotion
 	InsuffecientMat
 	FiftyMoves
 	Repetition
+	Record
+	screen de fin
 
 Possible Moves
 	Checked

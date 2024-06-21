@@ -2,7 +2,6 @@ import pygame as pg
 
 from constant import *
 
-
 class Displayer:
     def __init__(self):
         pg.init()
