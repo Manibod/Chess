@@ -27,13 +27,17 @@ def is_move_diff_color(pos, color, board_2D):
     return piece != None and piece.color != color
 
 class MoveRecord:
-    def __init__(self, piece, pos_start, pos_end, piece_captured, board_2D, turn):
+    def __init__(self, piece, pos_start, pos_end, board_2D, board_dict, turn, king_pos, king_pos_other, is_check):
         self.piece = piece
         self.pos_start = pos_start
         self.pos_end = pos_end
-        # self.piece_captured = piece_captured
         self.board_2D = copy.deepcopy(board_2D)
-        # self.turn = turn
+
+        self.board_dict = copy.deepcopy(board_dict)
+        self.turn = turn
+        self.king_pos = king_pos
+        self.king_pos_other = king_pos_other
+        self.is_check = is_check
 
 class MoveEnPassant:
     def __init__(self, piece, pos_start, pos_end, piece_captured):

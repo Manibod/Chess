@@ -1,11 +1,14 @@
 TO DO:
+	Record
 	refactor move() (if update)
-
-	Promotion
+	refactor everything!!!
+	
+	Repetition
+	
 	InsuffecientMat
 	FiftyMoves
-	Repetition
-	Record
+	
+	
 	screen de fin
 
 Possible Moves

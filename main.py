@@ -19,7 +19,8 @@ class Game:
         self.en_passant_moves = []
         self.is_promotion = False
         self.promotion_pos = []
-        self.record = []
+        self.record = [MoveRecord(None, None, None, self.board_2D, self.board_dict, self.turn, self.king_white_pos, self.king_black_pos, False)]
+        self.current_record_idx = 0
         
         self.run = True
         self.selected_piece_pos = None
@@ -48,18 +49,30 @@ class Game:
         while self.run:
             self.event_handler()
             self.displayer.grid_display()
-            if self.is_check:
-                king_pos = self.king_white_pos if self.turn == WHITE else self.king_black_pos
-                self.displayer.check_display(king_pos, self.turn)
-            if self.selected_piece_pos:
-                self.displayer.selected_tile_display(self.selected_piece_pos)
-            self.displayer.board_display(self.board_dict)
-            if self.possible_moves:
-                self.displayer.possible_moves_display(self.possible_moves)
-            if self.is_promotion:
-                self.displayer.promotion_display(self.promotion_pos, self.turn)
+            if self.current_record_idx == len(self.record) - 1:
+                self.display_current_game_state()
+            else:
+                self.display_past_game_state()
             self.displayer.update()
         pg.quit()
+    
+    def display_current_game_state(self):
+        if self.is_check:
+            king_pos = self.king_white_pos if self.turn == WHITE else self.king_black_pos
+            self.displayer.check_display(king_pos)
+        if self.selected_piece_pos:
+            self.displayer.selected_tile_display(self.selected_piece_pos)
+        self.displayer.board_display(self.board_dict)
+        if self.possible_moves:
+            self.displayer.possible_moves_display(self.possible_moves)
+        if self.is_promotion:
+            self.displayer.promotion_display(self.promotion_pos, self.turn)
+
+    def display_past_game_state(self):
+        record = self.record[self.current_record_idx]
+        if record.is_check:
+            self.displayer.check_display(record.king_pos_other)
+        self.displayer.board_display(record.board_dict)
 
     def event_handler(self):
         for event in pg.event.get():
@@ -68,13 +81,21 @@ class Game:
             elif event.type == pg.KEYDOWN:
                 if event.key == pg.K_ESCAPE:
                     self.run = False
+                if event.key == pg.K_LEFT and self.current_record_idx > 0 and not self.is_promotion:
+                    self.current_record_idx -= 1
+                if event.key == pg.K_RIGHT and self.current_record_idx < len(self.record) - 1 and not self.is_promotion:
+                    self.current_record_idx += 1
             elif event.type == pg.MOUSEBUTTONDOWN:
+                if self.current_record_idx != len(self.record) -1:
+                    return
+
                 pos = mouse_pos_to_tile_pos(pg.mouse.get_pos())
 
-                if self.is_promotion and pos in self.promotion_pos and self.promote(self.promotion_pos, pos, self.turn, self.board_2D, self.record[-1]):
-                    self.evaluate_state()
-                    self.selected_piece_pos = None
-                    self.possible_moves = []
+                if self.is_promotion:
+                    if pos in self.promotion_pos and self.promote(self.promotion_pos, pos, self.board_2D, self.record[-1]):
+                        self.evaluate_state()
+                        self.selected_piece_pos = None
+                        self.possible_moves = []
                 elif pos in self.possible_moves:
                     self.move(self.selected_piece_pos, pos, self.board_2D, True)
                     self.evaluate_state()
@@ -214,7 +235,10 @@ class Game:
                 else:
                     self.king_black_pos = pos_end
 
-            self.record.append(MoveRecord(piece_start, pos_start, pos_end, piece_end, self.board_2D, piece_start.color))
+            king_pos = self.king_white_pos if self.turn == WHITE else self.king_black_pos
+            king_pos_other = self.king_black_pos if self.turn == WHITE else self.king_white_pos
+            self.record.append(MoveRecord(piece_start, pos_start, pos_end, self.board_2D, self.board_dict, self.turn, king_pos, king_pos_other, False))
+            self.current_record_idx = len(self.record) -1
     
     def move_castle(self, king_pos_start, king_pos_end, board_2D, update):
         rook_start_col = ROOK_KINGSIDE_COL if king_pos_end[0] == KING_CASTLE_KINGSIDE_COL else ROOK_QUEENSIDE_COL
@@ -243,7 +267,9 @@ class Game:
             else:
                 self.king_black_pos = king_pos_end
 
-            self.record.append(MoveRecord(king_piece, king_pos_start, king_pos_end, None, board_2D, king_piece.color))
+            king_pos_other = self.king_black_pos if self.turn == WHITE else self.king_white_pos
+            self.record.append(MoveRecord(king_piece, king_pos_start, king_pos_end, board_2D, self.board_dict, self.turn, king_pos_end, king_pos_other, False))
+            self.current_record_idx = len(self.record) -1
 
     def check(self, board_2D, king_pos):
         return self.checkmate(True, board_2D, king_pos, MoveCheck(), self.en_passant_moves)
@@ -381,12 +407,13 @@ class Game:
         # Checked
         king_pos = king_pos = self.king_black_pos if self.turn == WHITE else self.king_white_pos
         self.is_check = self.check(self.board_2D, king_pos)
+        last_move.is_check = self.is_check
         self.is_checkmate = self.is_check and self.checkmate(False, self.board_2D, king_pos, self.check_moves, self.en_passant_moves)
         if self.is_checkmate or self.is_stalemate(self.board_dict, BLACK if self.turn == WHITE else WHITE):
             self.run = False
         self.turn = BLACK if self.turn == WHITE else WHITE
 
-    def promote(self, promotion_pos, choice_pos, turn, board_2D, last_move):
+    def promote(self, promotion_pos, choice_pos, board_2D, last_move):
         is_valid_choice_pos = False
         idx_choice = None
         for i, pos in enumerate(promotion_pos):
@@ -399,16 +426,18 @@ class Game:
             return False
         
         promotion_piece_name = PROMOTION_CHOICES[idx_choice]
+        color = BLACK if promotion_pos[0][1] == PIECE_WHITE_ROW else WHITE
         if promotion_piece_name == QUEEN:
-            piece = Queen(turn)
+            piece = Queen(color)
         elif promotion_piece_name == KNIGHT:
-            piece = Knight(turn)
+            piece = Knight(color)
         elif promotion_piece_name == ROOK:
-            piece = Rook(turn)
+            piece = Rook(color)
         elif promotion_piece_name == BISHOP:
-            piece = Bishop(turn)
+            piece = Bishop(color)
 
         last_move.board_2D[last_move.pos_end[0]][last_move.pos_end[1]] = piece
+        last_move.board_dict[last_move.pos_end] = piece
         board_2D[last_move.pos_end[0]][last_move.pos_end[1]] = piece
         self.board_dict[last_move.pos_end] = piece
 

@@ -29,7 +29,7 @@ class Displayer:
                              (row * TILE_SIZE, col * TILE_SIZE, TILE_SIZE, TILE_SIZE)
                 )
 
-    def check_display(self, king_pos, color):
+    def check_display(self, king_pos):
         color = TILE_CHECK_WHITE_COLOR if (king_pos[0] % 2 + king_pos[1] % 2) % 2 else TILE_CHECK_BLACK_COLOR
         x = king_pos[0]
         y = TILES_NB - 1 - king_pos[1]
