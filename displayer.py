@@ -24,30 +24,27 @@ class Displayer:
         self.screen.fill(TILE_BLACK_COLOR)
         for row in range(TILES_NB):
             for col in range(row % 2, TILES_NB, 2):
-                pg.draw.rect(
-                    self.screen,
-                    TILE_WHITE_COLOR,
-                    (row * TILE_SIZE, col * TILE_SIZE, TILE_SIZE, TILE_SIZE)
+                pg.draw.rect(self.screen,
+                             TILE_WHITE_COLOR,
+                             (row * TILE_SIZE, col * TILE_SIZE, TILE_SIZE, TILE_SIZE)
                 )
 
     def check_display(self, king_pos, color):
         color = TILE_CHECK_WHITE_COLOR if (king_pos[0] % 2 + king_pos[1] % 2) % 2 else TILE_CHECK_BLACK_COLOR
         x = king_pos[0]
         y = TILES_NB - 1 - king_pos[1]
-        pg.draw.rect(
-            self.screen,
-            color,
-            (x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE)
+        pg.draw.rect(self.screen,
+                     color,
+                     (x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE)
         )
 
     def selected_tile_display(self, selected_tile_pos):
         color = TILE_SELECTED_WHITE_COLOR if (selected_tile_pos[0] % 2 + selected_tile_pos[1] % 2) % 2 else TILE_SELECTED_BLACK_COLOR
         x = selected_tile_pos[0]
         y = TILES_NB - 1 - selected_tile_pos[1]
-        pg.draw.rect(
-            self.screen,
-            color,
-            (x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE)
+        pg.draw.rect(self.screen,
+                     color,
+                     (x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE)
         )
 
     def board_display(self, board_dict):
@@ -68,6 +65,21 @@ class Displayer:
             y = ((TILES_NB - 1 - move[1]) * TILE_SIZE) + TILE_SIZE / 2
             screen_pos = (x, y)
             pg.draw.circle(self.screen, POSSIBLE_MOVES_COLOR, screen_pos, TILE_SIZE / 2, 5)
+    
+    def promotion_display(self, promotion_pos, turn):
+        for i, pos in enumerate(promotion_pos):
+            x = (pos[0] * TILE_SIZE)
+            y = ((TILES_NB - 1 - pos[1]) * TILE_SIZE)
+            screen_pos_tile = (x, y)
+            if PROMOTION_CHOICES[i] == ROOK:
+                x = x + OFFSET1
+            screen_pos_piece = (x, y)
+            pg.draw.rect(self.screen,
+                         TILE_PROMOTION_TILE_COLOR,
+                         (screen_pos_tile[0], screen_pos_tile[1], TILE_SIZE, TILE_SIZE)
+            )
+            row = PIECE_IMAGE_WHITE_ROW if turn == WHITE else PIECE_IMAGE_BLACK_ROW
+            self.screen.blit(self.pieces_img, (screen_pos_piece[0], screen_pos_piece[1], TILE_SIZE, TILE_SIZE), self.piece_img[row][PROMOTION_CHOICES[i]])
 
     def update(self):
         pg.display.update()

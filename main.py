@@ -17,6 +17,8 @@ class Game:
         self.is_checkmate = False
         self.check_moves = MoveCheck()
         self.en_passant_moves = []
+        self.is_promotion = False
+        self.promotion_pos = []
         self.record = []
         
         self.run = True
@@ -52,7 +54,10 @@ class Game:
             if self.selected_piece_pos:
                 self.displayer.selected_tile_display(self.selected_piece_pos)
             self.displayer.board_display(self.board_dict)
-            self.displayer.possible_moves_display(self.possible_moves)
+            if self.possible_moves:
+                self.displayer.possible_moves_display(self.possible_moves)
+            if self.is_promotion:
+                self.displayer.promotion_display(self.promotion_pos, self.turn)
             self.displayer.update()
         pg.quit()
 
@@ -66,7 +71,11 @@ class Game:
             elif event.type == pg.MOUSEBUTTONDOWN:
                 pos = mouse_pos_to_tile_pos(pg.mouse.get_pos())
 
-                if pos in self.possible_moves:
+                if self.is_promotion and pos in self.promotion_pos and self.promote(self.promotion_pos, pos, self.turn, self.board_2D, self.record[-1]):
+                    self.evaluate_state()
+                    self.selected_piece_pos = None
+                    self.possible_moves = []
+                elif pos in self.possible_moves:
                     self.move(self.selected_piece_pos, pos, self.board_2D, True)
                     self.evaluate_state()
                     self.selected_piece_pos = None
@@ -345,12 +354,12 @@ class Game:
         piece.has_moved = True
         self.en_passant_moves = []
         self.check_moves.clear()
-
-        if piece.name == PAWN:
+        
+        if piece.name == PAWN and self.board_2D[last_move.pos_end[0]][last_move.pos_end[1]].name == PAWN:
             # Pawn after first move
             piece.delta_rep = PAWN_DELTA_REP
+            # Check for En passant
             if abs(last_move.pos_end[1] - last_move.pos_start[1]) >= 2:
-                # Check for En passant
                 for delta in SIDE_MOVE:
                     attacking_pos = add_pos(last_move.pos_end, delta)
                     if is_move_oob(attacking_pos):
@@ -361,6 +370,13 @@ class Game:
                         self.board_2D[attacking_pos[0]][attacking_pos[1]].name == PAWN):
                         attacking_piece_end_pos = add_pos(last_move.pos_end, attacking_piece.move_delta[0])
                         self.en_passant_moves.append(MoveEnPassant(attacking_piece, attacking_pos, attacking_piece_end_pos, piece))
+            # Check for promotion
+            promotion_row = PIECE_BLACK_ROW if self.turn == WHITE else PIECE_WHITE_ROW
+            if last_move.pos_end[1] == promotion_row:
+                self.is_promotion = True
+                delta = PAWN_BLACK_MOVE[0] if self.turn == WHITE else PAWN_WHITE_MOVE[0]
+                self.promotion_pos = [add_pos(last_move.pos_end, mul_pos(i, delta)) for i in range(len(PROMOTION_CHOICES))]
+                return
 
         # Checked
         king_pos = king_pos = self.king_black_pos if self.turn == WHITE else self.king_white_pos
@@ -369,6 +385,37 @@ class Game:
         if self.is_checkmate or self.is_stalemate(self.board_dict, BLACK if self.turn == WHITE else WHITE):
             self.run = False
         self.turn = BLACK if self.turn == WHITE else WHITE
+
+    def promote(self, promotion_pos, choice_pos, turn, board_2D, last_move):
+        is_valid_choice_pos = False
+        idx_choice = None
+        for i, pos in enumerate(promotion_pos):
+            if choice_pos == pos:
+                is_valid_choice_pos = True
+                idx_choice = i
+                break
+        
+        if not is_valid_choice_pos or idx_choice == None:
+            return False
+        
+        promotion_piece_name = PROMOTION_CHOICES[idx_choice]
+        if promotion_piece_name == QUEEN:
+            piece = Queen(turn)
+        elif promotion_piece_name == KNIGHT:
+            piece = Knight(turn)
+        elif promotion_piece_name == ROOK:
+            piece = Rook(turn)
+        elif promotion_piece_name == BISHOP:
+            piece = Bishop(turn)
+
+        last_move.board_2D[last_move.pos_end[0]][last_move.pos_end[1]] = piece
+        board_2D[last_move.pos_end[0]][last_move.pos_end[1]] = piece
+        self.board_dict[last_move.pos_end] = piece
+
+        self.is_promotion = False
+        self.promotion_pos = []
+
+        return True
 
 if __name__ == "__main__":
     mygame = Game()
